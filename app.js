@@ -63,6 +63,14 @@ function renderCart() {
   $('#checkoutButton').disabled = !hasItems;
   $('#cartCount').textContent = state.cart.reduce((sum, item) => sum + item.quantity, 0);
   $('#cartSubtotal').textContent = money(cartSubtotal());
+  const mobileCartBar = $('#mobileCartBar');
+  if (mobileCartBar) {
+    const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
+    $('#mobileCartCount').textContent = count;
+    $('#mobileCartTotal').textContent = money(cartSubtotal());
+    mobileCartBar.classList.toggle('visible', hasItems);
+    mobileCartBar.setAttribute('aria-hidden', String(!hasItems));
+  }
   $('#cartItems').innerHTML = state.cart.map((item,index) => `<div class="cart-row">
     <img src="${item.image}" alt="${item.name}" />
     <div><h4>${item.name}</h4><p>Size ${item.size}</p><div class="quantity-controls" aria-label="Quantity controls"><button type="button" data-qty="-1" data-index="${index}" aria-label="Decrease quantity">−</button><span>${item.quantity}</span><button type="button" data-qty="1" data-index="${index}" aria-label="Increase quantity">+</button></div><button type="button" class="remove-item" data-remove="${index}">Remove</button></div>
@@ -127,7 +135,7 @@ function renderCheckout() {
   const subtotal = cartSubtotal();
   const delivery = getDeliveryRate();
   $('#checkoutSubtotal').textContent = money(subtotal);
-  $('#deliveryFee').textContent = delivery === null ? (state.selectedWilaya ? 'Needs confirmation' : 'Select wilaya') : money(delivery);
+  $('#deliveryFee').textContent = delivery === null ? (state.selectedWilaya ? 'To confirm' : 'Select wilaya') : money(delivery);
   $('#checkoutTotal').textContent = delivery === null ? money(subtotal) : money(subtotal + delivery);
 }
 
@@ -169,6 +177,7 @@ document.addEventListener('click', (event) => {
 });
 
 $('#openCart').addEventListener('click', openCart);
+$('#mobileCheckoutButton').addEventListener('click', openCheckout);
 $('#closeCart').addEventListener('click', closeCart);
 $('#startShopping').addEventListener('click', closeCart);
 $('#checkoutButton').addEventListener('click', openCheckout);
@@ -182,7 +191,7 @@ $('#checkoutForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const delivery = getDeliveryRate();
   if (!state.selectedWilaya) { showToast('Select your wilaya first'); return; }
-  if (delivery === null) { showToast('This delivery rate needs confirmation before shipping'); }
+  if (delivery === null) { showToast('We will confirm this delivery fee with the agency before shipping'); }
   const formData = Object.fromEntries(new FormData(event.target).entries());
   const reference = `LG-${Date.now().toString().slice(-6)}`;
   const wilaya = WILAYAS.find(item => item.code === state.selectedWilaya);
@@ -199,7 +208,7 @@ $('#checkoutForm').addEventListener('submit', async (event) => {
     note: formData.note || '',
     items: itemsSummary,
     products_total: money(order.subtotal),
-    delivery_fee: delivery === null ? 'Needs confirmation' : money(delivery),
+    delivery_fee: delivery === null ? 'To confirm with delivery agency' : money(delivery),
     order_total: money(order.total),
     order_reference: reference
   };

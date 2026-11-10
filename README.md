@@ -1,4 +1,4 @@
-# LEGACY.STORE — Drop 001
+# LEGACY.STORE — Online shop
 
 This is the first working storefront prototype for LEGACY.STORE, using an English-first, product-first composition.
 
@@ -14,19 +14,20 @@ This is the first working storefront prototype for LEGACY.STORE, using an Englis
 - Cash-on-delivery checkout form.
 - Order email delivery configured for `imad.merabti1@gmail.com` through FormSubmit AJAX.
 - 58-wilaya delivery selector with separate home/office rates.
-- Missing/uncertain delivery values remain marked as needing confirmation.
+- All 58 wilayas remain selectable; missing agency rates are shown as `To confirm` and checked manually before dispatch.
 - Product revenue and delivery fees remain separate in the order summary.
+- Mobile-first shopping flow with large touch controls and a sticky cart/checkout bar.
 
 ## Open locally
 
-Open `index.html` in a browser. The prototype does not yet send orders to a backend; it saves the last order locally in the browser so the flow can be tested safely.
+Open `index.html` in a browser. Orders are sent to the configured FormSubmit email endpoint and the last order is also saved locally in the browser for testing.
 
 ## Before publishing
 
 1. Connect checkout to the selected order channel or backend.
-2. Confirm the allocation of the 18 total pairs between SH001 and SH002, including the two extra pairs not represented in the earlier size lists.
-3. Confirm DHD rates for wilayas 50, 54, and 56, plus office rates currently shown as `000` in the supplied sheets.
-4. Replace the local order handoff with a secure order-management connection.
+2. Keep inventory recorded as 16 pairs total: 8 SH001 and 8 SH002.
+3. Keep all wilayas available for orders and verify any missing delivery rate with the agency when an order arrives.
+4. For production, consider moving order handling to a secure order-management system as order volume grows.
 
 ## Email activation
 
