@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" role="img" aria-labelledby="title desc">
+  <title id="title">LEGACY blue purple mark</title>
+  <desc id="desc">A modern offset L archive mark in electric blue and ultraviolet purple.</desc>
+  <defs>
+    <linearGradient id="legacyGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+  </defs>
+  <path d="M190 190H790V290H290V790H190Z" fill="none" stroke="#2563EB" stroke-width="34" stroke-linejoin="miter"/>
+  <path d="M330 330H890V410H410V890H330Z" fill="none" stroke="url(#legacyGradient)" stroke-width="22" stroke-linejoin="miter"/>
+</svg>
