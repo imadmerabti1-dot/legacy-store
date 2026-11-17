@@ -114,7 +114,7 @@ h1 em,h2 em { font-family:var(--font-serif); font-style:italic; font-weight:400;
 .product-card { background:linear-gradient(145deg,#0d1428,#0a0f1e); border:1px solid var(--line); transition:border-color .3s ease, transform .3s ease, box-shadow .3s ease; }
 .product-card:hover { transform:translateY(-7px); border-color:rgba(139,92,246,.7); box-shadow:0 24px 50px rgba(0,0,0,.22); }
 .product-image { position:relative; aspect-ratio:1.25/1; overflow:hidden; background:#fff; }
-.main-crop { width:100%; height:100%; background-repeat:no-repeat; background-size:200% 200%; background-position:0% 0%; transition:background-position .2s ease, transform .35s ease; }
+.main-crop { width:100%; height:100%; background-repeat:no-repeat; background-size:200% 200%; background-position:100% 0%; transition:background-position .2s ease, transform .35s ease; }
 .product-card:hover .main-crop { transform:scale(1.04); }
 .angle-arrow { position:absolute; top:50%; z-index:2; width:34px; height:34px; display:grid; place-items:center; transform:translateY(-50%); border:1px solid rgba(11,16,32,.16); border-radius:50%; background:rgba(247,249,255,.78); color:#0B1020; font:24px/1 Arial,sans-serif; opacity:.78; transition:opacity .2s ease, background .2s ease, transform .2s ease; }
 .angle-arrow:hover { opacity:1; background:#fff; transform:translateY(-50%) scale(1.06); }
@@ -135,9 +135,9 @@ h1 em,h2 em { font-family:var(--font-serif); font-style:italic; font-weight:400;
 .size-chip:disabled { color:#59637c; border-color:#2a3349; cursor:not-allowed; text-decoration:line-through; }
 .angle-thumbs { display:flex; gap:7px; margin-bottom:14px; direction:ltr; }
 .angle-thumb { width:52px; height:42px; border:1px solid rgba(245,247,255,.2); background-repeat:no-repeat; background-size:200% 200%; padding:0; opacity:.6; }
-.angle-thumb:nth-child(1) { background-position:0% 0%; }
-.angle-thumb:nth-child(2) { background-position:100% 0%; }
-.angle-thumb:nth-child(3) { background-position:0% 100%; }
+.angle-thumb:nth-child(1) { background-position:100% 0%; }
+.angle-thumb:nth-child(2) { background-position:0% 100%; }
+.angle-thumb:nth-child(3) { background-position:0% 0%; }
 .angle-thumb:nth-child(4) { background-position:100% 100%; }
 .angle-thumb.selected { opacity:1; border-color:#8da9f8; box-shadow:0 0 0 1px #8da9f8; }
 .product-quantity { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:4px 0 14px; color:var(--muted); font-size:11px; }

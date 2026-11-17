@@ -42,7 +42,7 @@ function renderProducts() {
   $('#productGrid').innerHTML = PRODUCTS.map(product => {
     const launch = isLaunchActive();
     return `<article class="product-card" data-product="${product.id}">
-      <div class="product-image"><div class="main-crop" data-angle="0" role="img" aria-label="${product.name} — angle 1" style="background-image:url('${product.image}')"></div><button type="button" class="angle-arrow angle-prev" data-arrow="prev" aria-label="Previous product image">‹</button><button type="button" class="angle-arrow angle-next" data-arrow="next" aria-label="Next product image">›</button>${launch ? '<span class="product-badge">LAUNCH OFFER</span>' : ''}</div>
+      <div class="product-image"><div class="main-crop" data-angle="0" role="img" aria-label="${product.name} — angle 1" style="background-image:url('${product.image}'); background-position: 100% 0%;"></div><button type="button" class="angle-arrow angle-prev" data-arrow="prev" aria-label="Previous product image">‹</button><button type="button" class="angle-arrow angle-next" data-arrow="next" aria-label="Next product image">›</button>${launch ? '<span class="product-badge">LAUNCH OFFER</span>' : ''}</div>
       <div class="product-info">
         <span class="product-code">${product.id} · MODEL ${product.id === 'SH001' ? '1' : '2'}</span>
         <h3>${product.name}</h3>
@@ -100,7 +100,7 @@ function changeQuantity(index, delta) {
 }
 
 function setProductAngle(card, angle) {
-  const positions = ['0% 0%','100% 0%','0% 100%','100% 100%'];
+  const positions = ['100% 0%','0% 100%','0% 0%','100% 100%'];
   const safeAngle = (angle + 4) % 4;
   const mainCrop = card.querySelector('.main-crop');
   mainCrop.style.backgroundPosition = positions[safeAngle];
