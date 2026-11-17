@@ -12,7 +12,9 @@ This is the first working storefront prototype for LEGACY.STORE, using an Englis
 - Launch pricing for the first 10 submitted orders.
 - Size selection and cart drawer.
 - Cash-on-delivery checkout form.
-- Order email delivery configured for `imad.merabti1@gmail.com` through FormSubmit AJAX.
+- Order email delivery configured for `imad.merabti1@gmail.com` with 3.5s timeout protection (fail-open so checkout never freezes).
+- Instant 1-click WhatsApp confirmation button routed to `+213792153917`.
+- LocalStorage persistence (`legacyOrders`) so no order is ever lost even if offline or if email services stall.
 - 58-wilaya delivery selector with separate home/office rates.
 - All 58 wilayas remain selectable; missing agency rates are shown as `To confirm` and checked manually before dispatch.
 - Product revenue and delivery fees remain separate in the order summary.

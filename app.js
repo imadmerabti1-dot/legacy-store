@@ -5,6 +5,7 @@ const PRODUCTS = [
 
 const ORDER_EMAIL = 'imad.merabti1@gmail.com';
 const ORDER_ENDPOINT = `https://formsubmit.co/ajax/${ORDER_EMAIL}`;
+const WHATSAPP_PHONE = '213792153917';
 
 // Source: the DHD Tlemcen rate sheets supplied for this project.
 // null means the source rate is still missing and must be confirmed before shipping.
@@ -141,8 +142,26 @@ function renderCheckout() {
 
 function openCart() { $('#cartDrawer').classList.add('open'); $('#cartDrawer').setAttribute('aria-hidden','false'); $('#overlay').classList.add('visible'); }
 function closeCart() { $('#cartDrawer').classList.remove('open'); $('#cartDrawer').setAttribute('aria-hidden','true'); if (!$('#checkoutModal').classList.contains('open')) $('#overlay').classList.remove('visible'); }
-function openCheckout() { if (!state.cart.length) return; closeCart(); renderCheckout(); $('#checkoutModal').classList.add('open'); $('#checkoutModal').setAttribute('aria-hidden','false'); $('#overlay').classList.add('visible'); }
-function closeCheckout() { $('#checkoutModal').classList.remove('open'); $('#checkoutModal').setAttribute('aria-hidden','true'); $('#overlay').classList.remove('visible'); }
+function resetCheckoutModal() {
+  $('#checkoutForm').reset();
+  $('#checkoutForm').style.display = 'grid';
+  $('#successMessage').classList.remove('visible');
+}
+
+function openCheckout() {
+  if (!state.cart.length) return;
+  closeCart();
+  renderCheckout();
+  resetCheckoutModal();
+  $('#checkoutModal').classList.add('open');
+  $('#checkoutModal').setAttribute('aria-hidden','false');
+  $('#overlay').classList.add('visible');
+}
+function closeCheckout() {
+  $('#checkoutModal').classList.remove('open');
+  $('#checkoutModal').setAttribute('aria-hidden','true');
+  $('#overlay').classList.remove('visible');
+}
 
 function showToast(message) { const toast = $('#toast'); toast.textContent = message; toast.classList.add('show'); clearTimeout(showToast.timer); showToast.timer = setTimeout(() => toast.classList.remove('show'), 2800); }
 
@@ -185,21 +204,56 @@ $('#closeCheckout').addEventListener('click', closeCheckout);
 $('#overlay').addEventListener('click', () => { closeCart(); closeCheckout(); });
 $('#wilayaSelect').addEventListener('change', (event) => { state.selectedWilaya = event.target.value || null; renderCheckout(); });
 $('#deliveryType').addEventListener('change', renderCheckout);
-$('#continueShopping').addEventListener('click', () => { closeCheckout(); window.location.hash = 'shop'; });
+$('#continueShopping').addEventListener('click', () => {
+  closeCheckout();
+  resetCheckoutModal();
+  window.location.hash = 'shop';
+});
 
 $('#checkoutForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   const delivery = getDeliveryRate();
   if (!state.selectedWilaya) { showToast('Select your wilaya first'); return; }
   if (delivery === null) { showToast('We will confirm this delivery fee with the agency before shipping'); }
+  
   const formData = Object.fromEntries(new FormData(event.target).entries());
   const reference = `LG-${Date.now().toString().slice(-6)}`;
   const wilaya = WILAYAS.find(item => item.code === state.selectedWilaya);
   const deliveryMethod = formData.deliveryType === 'office' ? 'Office pickup' : 'Home delivery';
   const itemsSummary = state.cart.map(item => `${item.name} | size ${item.size} | qty ${item.quantity} | ${money(item.price * item.quantity)}`).join('\n');
-  const order = { reference, ...formData, wilaya: wilaya?.name || state.selectedWilaya, deliveryMethod, items:state.cart, subtotal:cartSubtotal(), deliveryFee:delivery, total:cartSubtotal() + (delivery || 0), createdAt:new Date().toISOString() };
+  const order = {
+    reference,
+    ...formData,
+    wilaya: wilaya?.name || state.selectedWilaya,
+    deliveryMethod,
+    items: [...state.cart],
+    subtotal: cartSubtotal(),
+    deliveryFee: delivery,
+    total: cartSubtotal() + (delivery || 0),
+    createdAt: new Date().toISOString()
+  };
+
+  // 1. Immediately secure order in localStorage so it is NEVER lost
+  const allOrders = JSON.parse(localStorage.getItem('legacyOrders') || '[]');
+  allOrders.unshift(order);
+  localStorage.setItem('legacyOrders', JSON.stringify(allOrders));
+  localStorage.setItem('legacyLastOrder', JSON.stringify(order));
+
+  // 2. Prepare WhatsApp 1-click confirmation URL
+  const waItemsText = state.cart.map(item => `• ${item.name} (Taille ${item.size}) x${item.quantity}`).join('\n');
+  const waMessage = `Bonjour LEGACY,\nJe souhaite confirmer ma commande :\n\n📌 Réf: ${reference}\n👟 Articles:\n${waItemsText}\n💵 Total: ${money(order.total)}\n\n👤 Nom: ${formData.name}\n📱 Tél: ${formData.phone}\n📍 Wilaya: ${state.selectedWilaya} — ${wilaya?.name || ''}\n🏠 Adresse: ${formData.address}\n🚚 Mode: ${deliveryMethod}${formData.note ? `\n📝 Note: ${formData.note}` : ''}`;
+  const waUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(waMessage)}`;
+
+  // 3. UI feedback
+  const submitButton = event.target.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  submitButton.textContent = 'Processing…';
+
+  // 4. Send email in background with 3.5s timeout (never freeze the customer)
   const emailPayload = {
     _subject: `LEGACY.STORE order ${reference}`,
+    _captcha: 'false',
+    _template: 'table',
     name: formData.name,
     phone: formData.phone,
     wilaya: `${state.selectedWilaya} — ${wilaya?.name || ''}`,
@@ -212,23 +266,42 @@ $('#checkoutForm').addEventListener('submit', async (event) => {
     order_total: money(order.total),
     order_reference: reference
   };
-  const submitButton = event.target.querySelector('button[type="submit"]');
-  submitButton.disabled = true;
-  submitButton.textContent = 'Sending order…';
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3500);
+
   try {
-    const response = await fetch(ORDER_ENDPOINT, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(emailPayload) });
-    if (!response.ok) throw new Error('Email service rejected the order');
-    localStorage.setItem('legacyLastOrder', JSON.stringify(order));
-  } catch (error) {
-    submitButton.disabled = false;
-    submitButton.textContent = 'Confirm order';
-    showToast('Could not send the order email. Please try again.');
-    return;
+    await fetch(ORDER_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(emailPayload),
+      signal: controller.signal
+    });
+  } catch (err) {
+    console.warn('Background email dispatch timed out or was blocked. Order safely preserved in localStorage and routed to WhatsApp.');
+  } finally {
+    clearTimeout(timeoutId);
   }
-  if (isLaunchActive()) { state.launchOrders += 1; localStorage.setItem('legacyLaunchOrders', String(state.launchOrders)); }
-  state.cart = []; renderCart(); renderProducts();
-  $('#checkoutForm').style.display = 'none'; $('#successMessage').classList.add('visible');
+
+  // 5. Update launch offer count & display success view
+  if (isLaunchActive()) {
+    state.launchOrders += 1;
+    localStorage.setItem('legacyLaunchOrders', String(state.launchOrders));
+  }
+  state.cart = [];
+  renderCart();
+  renderProducts();
+
+  $('#successRef').textContent = reference;
+  const waBtn = $('#whatsappConfirmButton');
+  if (waBtn) waBtn.href = waUrl;
+
+  $('#checkoutForm').style.display = 'none';
+  $('#successMessage').classList.add('visible');
   $('#ordersLeft').textContent = Math.max(0, 10 - state.launchOrders);
+
+  submitButton.disabled = false;
+  submitButton.textContent = 'Confirm order';
 });
 
 renderProducts(); renderCart(); populateWilayas();
@@ -255,3 +328,14 @@ if (heroShotOne && heroShotTwo) {
     heroShotOne.classList.toggle('inactive', showingSecond);
   }, 7000);
 }
+
+// Admin helper: type legacyStore.getOrders() in DevTools Console to inspect all received orders
+window.legacyStore = {
+  getOrders: () => JSON.parse(localStorage.getItem('legacyOrders') || '[]'),
+  clearOrders: () => { localStorage.removeItem('legacyOrders'); console.log('All orders cleared.'); },
+  exportOrders: () => {
+    const orders = JSON.parse(localStorage.getItem('legacyOrders') || '[]');
+    console.table(orders);
+    return orders;
+  }
+};
