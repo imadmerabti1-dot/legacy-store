@@ -30,7 +30,9 @@ const WILAYAS = [
 const state = {
   cart: JSON.parse(localStorage.getItem('legacyCart') || '[]'),
   launchOrders: Number(localStorage.getItem('legacyLaunchOrders') || 0),
-  selectedWilaya: null
+  selectedWilaya: null,
+  orderSubmitted: false,
+  hasLoggedUncompleted: false
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -142,10 +144,45 @@ function renderCheckout() {
 
 function openCart() { $('#cartDrawer').classList.add('open'); $('#cartDrawer').setAttribute('aria-hidden','false'); $('#overlay').classList.add('visible'); }
 function closeCart() { $('#cartDrawer').classList.remove('open'); $('#cartDrawer').setAttribute('aria-hidden','true'); if (!$('#checkoutModal').classList.contains('open')) $('#overlay').classList.remove('visible'); }
+function captureUncompletedCheckout() {
+  if (state.orderSubmitted || state.hasLoggedUncompleted) return;
+  const phoneInput = $('#checkoutForm input[name="phone"]');
+  const phone = phoneInput ? phoneInput.value.trim() : '';
+  if (!phone || phone.length < 8) return;
+
+  state.hasLoggedUncompleted = true;
+  const nameInput = $('#checkoutForm input[name="name"]');
+  const name = nameInput && nameInput.value.trim() ? nameInput.value.trim() : 'Non renseigné';
+  const wilaya = WILAYAS.find(item => item.code === state.selectedWilaya);
+  const wilayaStr = state.selectedWilaya ? `${state.selectedWilaya} — ${wilaya?.name || ''}` : 'Non sélectionnée';
+  const itemsStr = state.cart.map(item => `${item.name} (Taille ${item.size}) x${item.quantity}`).join(', ');
+
+  const payload = {
+    status: 'uncompleted',
+    name: name,
+    phone: phone,
+    wilaya: wilayaStr,
+    items: itemsStr
+  };
+
+  try {
+    fetch(ORDER_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      keepalive: true
+    });
+  } catch (err) {
+    console.warn('Could not record uncompleted checkout:', err);
+  }
+}
+
 function resetCheckoutModal() {
   $('#checkoutForm').reset();
   $('#checkoutForm').style.display = 'grid';
   $('#successMessage').classList.remove('visible');
+  state.orderSubmitted = false;
+  state.hasLoggedUncompleted = false;
 }
 
 function openCheckout() {
@@ -158,6 +195,7 @@ function openCheckout() {
   $('#overlay').classList.add('visible');
 }
 function closeCheckout() {
+  captureUncompletedCheckout();
   $('#checkoutModal').classList.remove('open');
   $('#checkoutModal').setAttribute('aria-hidden','true');
   $('#overlay').classList.remove('visible');
@@ -212,6 +250,7 @@ $('#continueShopping').addEventListener('click', () => {
 
 $('#checkoutForm').addEventListener('submit', async (event) => {
   event.preventDefault();
+  state.orderSubmitted = true;
   const delivery = getDeliveryRate();
   if (!state.selectedWilaya) { showToast('Select your wilaya first'); return; }
   if (delivery === null) { showToast('We will confirm this delivery fee with the agency before shipping'); }
@@ -325,6 +364,12 @@ if (heroShotOne && heroShotTwo) {
     heroShotOne.classList.toggle('inactive', showingSecond);
   }, 7000);
 }
+
+// Capture uncompleted checkouts if user switches tabs or leaves
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') captureUncompletedCheckout();
+});
+window.addEventListener('pagehide', captureUncompletedCheckout);
 
 // Admin helper: type legacyStore.getOrders() in DevTools Console to inspect all received orders
 window.legacyStore = {
