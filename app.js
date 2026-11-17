@@ -4,7 +4,7 @@ const PRODUCTS = [
 ];
 
 const ORDER_EMAIL = 'imad.merabti1@gmail.com';
-const ORDER_ENDPOINT = `https://formsubmit.co/ajax/${ORDER_EMAIL}`;
+const ORDER_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw7_22-dzvWTELTlzb18A-Ce1BToUo2R1wElVjjma9Bmxi1OVqz2iMIlU-EzUxbu5cWzw/exec';
 const WHATSAPP_PHONE = '213792153917';
 
 // Source: the DHD Tlemcen rate sheets supplied for this project.
@@ -249,11 +249,9 @@ $('#checkoutForm').addEventListener('submit', async (event) => {
   submitButton.disabled = true;
   submitButton.textContent = 'Processing…';
 
-  // 4. Send email in background with 3.5s timeout (never freeze the customer)
-  const emailPayload = {
-    _subject: `LEGACY.STORE order ${reference}`,
-    _captcha: 'false',
-    _template: 'table',
+  // 4. Send order to Google Sheet & Gmail in background with 4s timeout (never freeze the customer)
+  const orderPayload = {
+    order_reference: reference,
     name: formData.name,
     phone: formData.phone,
     wilaya: `${state.selectedWilaya} — ${wilaya?.name || ''}`,
@@ -263,22 +261,21 @@ $('#checkoutForm').addEventListener('submit', async (event) => {
     items: itemsSummary,
     products_total: money(order.subtotal),
     delivery_fee: delivery === null ? 'To confirm with delivery agency' : money(delivery),
-    order_total: money(order.total),
-    order_reference: reference
+    order_total: money(order.total)
   };
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3500);
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
 
   try {
     await fetch(ORDER_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify(emailPayload),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(orderPayload),
       signal: controller.signal
     });
   } catch (err) {
-    console.warn('Background email dispatch timed out or was blocked. Order safely preserved in localStorage and routed to WhatsApp.');
+    console.warn('Background sync note: Order safely preserved in localStorage & routed to WhatsApp.', err);
   } finally {
     clearTimeout(timeoutId);
   }
